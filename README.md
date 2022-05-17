@@ -4,7 +4,7 @@
 Construção de modelos lineares de previsão com Variáveis Explanatórias
 
 ### Orientador
-Leandro Correa
+Leandro Correia
 
 ### Orientando
 Davi Guerra Alves
