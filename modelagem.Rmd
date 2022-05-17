@@ -1,0 +1,274 @@
+---
+title: "Modelagem"
+author: "Davi Guerra"
+date: ""
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F)
+```
+
+```{r}
+setwd('D:/pibic')
+
+options(scipen=999)
+
+pacman::p_load('tidyverse')
+
+#Retirando essas variáveis dos bancos de dados pois elas apresentavam muitos valores faltantes
+#na hora das análises e os valores que restavam não influenciava muito na variável resposta
+
+df_treino = read.csv('data/train.csv') %>%
+  dplyr::select(!c(Alley,PoolQC,Fence,MiscFeature)) 
+
+df_test = read.csv('data/test.csv') %>% 
+  dplyr::select(!c(Alley,PoolQC,Fence,MiscFeature))
+
+y = df_treino$SalePrice
+
+df_treino = df_treino %>% 
+  dplyr::select(!c(SalePrice))
+```
+
+
+### Separando as variáveis numéricas e categóricas
+```{r}
+col_num = sapply(df_treino, typeof) == "integer" 
+col_char = sapply(df_treino, typeof) == "character"
+
+numericas = df_treino[col_num]
+categoricas = df_treino[col_char]
+
+length(numericas)+length(categoricas)
+```
+
+## Gráfico de Dispersão das covariáveis numéricas pela variável resposta
+
+```{r}
+
+
+cbind(numericas[1:12],y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_point()+
+    facet_wrap(~name, scales = 'free')
+
+cbind(numericas[13:25],y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_point()+
+    facet_wrap(~name, scales = 'free')
+
+cbind(numericas[26:37],y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_point()+
+    facet_wrap(~name, scales = 'free')
+
+```
+\subsection{Teste de correlação de pearson }
+```{r}
+
+#Pvalor
+result_cor_test = sapply(numericas, function(x) round(cor.test(x,y)$p.value,5))
+result_cor_test
+
+signif_num_vars = numericas[result_cor_test < 0.05]
+signif_num_vars %>% head()
+  
+```
+
+## Boxplot das covariáveis categóricas em relação à variável resposta
+
+Como o intuito é verificar mais se dentro das covariáveis alguma varíavel apresenta maior influência que as outras, os nomes dentro das variáveis ficou corrompido, por isso, caso haja necessidade de ver algum covariável com mais detalhe posso criar um gráfico só pra ela.
+
+```{r}
+
+
+
+cbind(categoricas[1:6],y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+cbind(categoricas[7:13],y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+cbind(categoricas[14:20],y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+cbind(categoricas[21:27],y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+cbind(categoricas[28:34],y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+cbind(categoricas[35:39],y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+
+```
+
+### Fazendo o teste da ANOVA
+```{r}
+data_cat = cbind(categoricas,y) 
+result_anova = summary(aov(y ~ ., data = data_cat))
+
+```
+
+```{r}
+# pegando somente as variáveis que tiveram um pvalor abaixo de 0,05
+result_anova = result_anova[[1]]
+signif_cat_vars = result_anova[result_anova$`Pr(>F)` < 0.05,]
+
+#variáveis categóricas significantes
+signif_cat_vars
+
+```
+
+
+```{r}
+#Pegando o nome das variáveis numéricas e categóricas
+names_signif_vars_cat = signif_cat_vars %>% row.names %>% str_trim() 
+names_signif_vars_cat = names_signif_vars_cat[names_signif_vars_cat!="NA"]
+
+names_signif_vars_num = signif_num_vars %>% colnames
+
+signif_vars = c(names_signif_vars_cat, names_signif_vars_num)
+
+#Covariáveis significantes
+signif_vars
+
+
+```
+
+Fazendo os testes de correlação e da anova, conseguiu-se reduzir o número de variáveis de 80 para 53.
+
+Com isso, para o restante das análises serão utilizadas essas variáveis.
+
+
+\subsection{Criação das variáveis dummies}
+
+
+```{r, warning=F}
+library(fastDummies)
+
+n_treino = nrow(df_treino)
+n_test = nrow(df_test)
+
+df_geral = rbind(df_treino, df_test)
+
+
+#aplicando a técnica no dataframe de treino e teste juntos
+df_geral = df_geral[signif_vars]
+df_geral = dummy_cols(df_geral, select_columns = names_signif_vars_cat, 
+                      remove_first_dummy = T)
+
+treino = df_geral[1:n_treino, ]
+teste = df_geral[n_treino:nrow(df_geral),]
+
+
+treino = treino %>% 
+  mutate(y = y) %>% 
+  na.omit %>% 
+  dplyr::select(!names_signif_vars_cat) 
+
+
+#dimensão do dataframe de treino depois de todo o processo de avaliação e criação de variáveis
+dim(treino)
+```
+
+
+Transformando as variáveis categóricas em variáveis dummies aumentamos o número de variáveis do modelo de 53 para `r dim(treino)[2]` variáveis
+
+
+\subsection{Seleção do modelo}
+
+Usando a fórmula do backward usando o critério de aic chegamos nos seguintes resultados:
+```{r, results='hide'}
+
+library(MASS)
+
+
+model = lm(y~., data = treino)
+best_model = stepAIC(model, direction = 'backward')
+
+```
+
+Número de variáveis selecionadas:
+```{r}
+best_model$coefficients %>% names %>% length
+```
+Variáveis selecionadas:
+
+```{r}
+best_model$coefficients %>% names
+```
+
+Gráfico de resíduos:
+
+```{r}
+plot(best_model$residuals)
+```
+
+
+Preparando os dados de teste para a predição:
+```{r}
+teste = teste %>%
+  dplyr::select(!names_signif_vars_cat)
+```
+
+Fazendo a avaliação do modelo:
+```{r}
+library(forecast)
+
+y_true = y
+y_pred = predict(best_model, treino)
+
+accuracy(y_true, y_pred)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
