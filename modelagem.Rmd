@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE, message = F)
 
 ```{r}
 setwd('D:/pibic')
-
+source('./src/utils.R')
 options(scipen=999)
 
 pacman::p_load('tidyverse')
@@ -34,14 +34,35 @@ df_treino = df_treino %>%
 
 ### Separando as variáveis numéricas e categóricas
 ```{r}
-col_num = sapply(df_treino, typeof) == "integer" 
+col_num = sapply(df_treino, typeof) == "integer"
 col_char = sapply(df_treino, typeof) == "character"
 
 numericas = df_treino[col_num]
 categoricas = df_treino[col_char]
 
-length(numericas)+length(categoricas)
+length(numericas) + length(categoricas)
 ```
+
+```{r}
+library(corrplot)
+
+numericas_tratado = na.omit(numericas[-1])
+correlation_matrix = cor(numericas_tratado)
+
+part_variables_by_correlation(correlation_matrix, 0.5)$correlacionadas
+
+
+
+
+
+
+```
+
+
+
+
+
+
 
 ## Gráfico de Dispersão das covariáveis numéricas pela variável resposta
 
@@ -201,51 +222,49 @@ Transformando as variáveis categóricas em variáveis dummies aumentamos o núm
 
 \subsection{Seleção do modelo}
 
-Usando a fórmula do backward usando o critério de aic chegamos nos seguintes resultados:
-```{r, results='hide'}
+<!-- Usando a fórmula do backward usando o critério de aic chegamos nos seguintes resultados: -->
+<!-- ```{r, results='hide'} -->
 
-library(MASS)
-
-
-model = lm(y~., data = treino)
-best_model = stepAIC(model, direction = 'backward')
-
-```
-
-Número de variáveis selecionadas:
-```{r}
-best_model$coefficients %>% names %>% length
-```
-Variáveis selecionadas:
-
-```{r}
-best_model$coefficients %>% names
-```
-
-Gráfico de resíduos:
-
-```{r}
-plot(best_model$residuals)
-```
+<!-- library(MASS) -->
 
 
-Preparando os dados de teste para a predição:
-```{r}
-teste = teste %>%
-  dplyr::select(!names_signif_vars_cat)
-```
+<!-- model = lm(y~., data = treino) -->
+<!-- best_model = stepAIC(model, direction = 'backward') -->
 
-Fazendo a avaliação do modelo:
-```{r}
-library(forecast)
+<!-- ``` -->
 
-y_true = y
-y_pred = predict(best_model, treino)
+<!-- Número de variáveis selecionadas: -->
+<!-- ```{r} -->
+<!-- best_model$coefficients %>% names %>% length -->
+<!-- ``` -->
+<!-- Variáveis selecionadas: -->
 
-accuracy(y_true, y_pred)
-```
+<!-- ```{r} -->
+<!-- best_model$coefficients %>% names -->
+<!-- ``` -->
+
+<!-- Gráfico de resíduos: -->
+
+<!-- ```{r} -->
+<!-- plot(best_model$residuals) -->
+<!-- ``` -->
 
 
+<!-- Preparando os dados de teste para a predição: -->
+<!-- ```{r} -->
+<!-- teste = teste %>% -->
+<!--   dplyr::select(!names_signif_vars_cat) -->
+<!-- ``` -->
+
+<!-- Fazendo a avaliação do modelo: -->
+<!-- ```{r} -->
+<!-- library(forecast) -->
+
+<!-- y_true = y -->
+<!-- y_pred = predict(best_model, treino) -->
+
+<!-- accuracy(y_true, y_pred) -->
+<!-- ``` -->
 
 
 
@@ -255,14 +274,13 @@ accuracy(y_true, y_pred)
 
 
 
+# Matriz de correlação entre as variáveis quantitativas
 
+# fazer um modelo com cada variável numérica pela variável resposta
 
+#calcular o coeficiente de contingência
 
-
-
-
-
-
+#comparação do teste da anova com cada variável categórica com a variável resposta
 
 
 
