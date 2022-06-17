@@ -14,7 +14,7 @@ setwd('D:/pibic')
 source('./src/utils.R')
 options(scipen=999)
 
-pacman::p_load('tidyverse')
+pacman::p_load('tidyverse','DescTools')
 
 #Retirando essas variáveis dos bancos de dados pois elas apresentavam muitos valores faltantes
 #na hora das análises e os valores que restavam não influenciava muito na variável resposta
@@ -49,15 +49,14 @@ library(corrplot)
 numericas_tratado = na.omit(numericas[-1])
 correlation_matrix = cor(numericas_tratado)
 
-part_variables_by_correlation(correlation_matrix, 0.5)$correlacionadas
-
-
-
-
-
+num_vars_correlated = part_variables_by_correlation(correlation_matrix, 0.6)$correlacionadas
 
 ```
 
+```{r}
+matrix_coef_contigency = calcule_multiple_coef_contigency(categoricas)
+cat_vars_associated = part_variables_by_correlation(matrix_coef_contigency, 0.5)$correlacionadas
+```
 
 
 
