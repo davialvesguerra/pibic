@@ -40,3 +40,29 @@ part_variables_by_correlation = function(correlation_matrix, significant_level){
   return(partition_variables)
   
 }
+
+
+
+
+
+
+calcule_multiple_coef_contigency = function(data){
+  
+  num_cols = dim(data)[2]
+  
+  matrix_coef_Contingency = lapply(1:num_cols, function(fixed_var){
+    sapply(data, function(actual_var){ 
+      
+      contingency_table = table(unlist(data[fixed_var]),unlist(actual_var), useNA = 'no') 
+      
+      ContCoef(contingency_table)
+      
+    })  
+  }) %>% 
+    as.data.frame
+  
+  colnames(matrix_coef_Contingency) = row.names(matrix_coef_Contingency)
+  
+  return(as.matrix(matrix_coef_Contingency))
+  
+}
