@@ -66,3 +66,28 @@ calcule_multiple_coef_contigency = function(data){
   return(as.matrix(matrix_coef_Contingency))
   
 }
+
+
+
+find_enough_vars_correlated = function(list_vars_correlated){
+  
+  vars_correlated_with_someone = c()  
+  
+  cont = 1
+  for(actual_vars in list_vars_correlated){
+    
+    actual_names = names(actual_vars)
+    index_new_vars_correlatead = !(actual_names %in% vars_correlated_with_someone)
+    
+    vars_correlated_with_someone = append(vars_correlated_with_someone, actual_names[index_new_vars_correlatead])
+    
+    cont = cont + 1
+    
+    if(length(vars_correlated_with_someone) == length(names(list_vars_correlated))){
+      break
+    }
+    
+  }
+  
+  return(vars_correlated_with_someone)
+}

@@ -49,13 +49,18 @@ library(corrplot)
 numericas_tratado = na.omit(numericas[-1])
 correlation_matrix = cor(numericas_tratado)
 
-num_vars_correlated = part_variables_by_correlation(correlation_matrix, 0.6)$correlacionadas
+num_vars_correlated = part_variables_by_correlation(correlation_matrix, 0.5)$correlacionadas
+
+
+
+find_enough_vars_correlated(num_vars_correlated)
 
 ```
 
 ```{r}
 matrix_coef_contigency = calcule_multiple_coef_contigency(categoricas)
-cat_vars_associated = part_variables_by_correlation(matrix_coef_contigency, 0.5)$nao_correlacionadas
+cat_vars_associated = part_variables_by_correlation(matrix_coef_contigency, 0.5)$correlacionadas
+cat_vars_associated
 ```
 
 
