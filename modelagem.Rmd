@@ -49,18 +49,29 @@ library(corrplot)
 numericas_tratado = na.omit(numericas[-1])
 correlation_matrix = cor(numericas_tratado)
 
-num_vars_correlated = part_variables_by_correlation(correlation_matrix, 0.5)$correlacionadas
+num_vars_correlated = part_variables_by_correlation(correlation_matrix, 0.7)$correlacionadas
+num_names_ordered = sapply(num_vars_correlated, function(x) length(x)) %>% sort(decreasing = F) %>% names
 
+enough_vars_correlated = find_enough_vars_correlated(num_vars_correlated[num_names_ordered])
 
-
-find_enough_vars_correlated(num_vars_correlated)
-
+length(enough_vars_correlated)
+length(names(num_vars_correlated))
+length(names(numericas))
 ```
 
 ```{r}
-matrix_coef_contigency = calcule_multiple_coef_contigency(categoricas)
+matrix_coef_contigency = calcule_multiple_coef_contigency(categoricas) 
+
 cat_vars_associated = part_variables_by_correlation(matrix_coef_contigency, 0.5)$correlacionadas
-cat_vars_associated
+cat_vars_associated = lapply(cat_vars_associated, function(x) x[!is.na(x)])
+
+cat_names_ordered = sapply(cat_vars_associated, function(x) length(x)) %>% sort(decreasing = T) %>% names
+
+enough_vars_associated = find_enough_vars_correlated(cat_vars_associated[cat_names_ordered])
+
+length(enough_vars_associated)
+length(names(cat_vars_associated))
+length(names(categoricas))
 ```
 
 

@@ -20,6 +20,8 @@ part_variables_by_correlation = function(correlation_matrix, significant_level){
   indice = 1
   
   for(var_of_correlation_matrix in correlation_matrix_signific){
+    
+    
 
     if(length(var_of_correlation_matrix)==1){
       partition_variables$nao_correlacionadas = append(partition_variables$nao_correlacionadas,
@@ -71,19 +73,23 @@ calcule_multiple_coef_contigency = function(data){
 
 find_enough_vars_correlated = function(list_vars_correlated){
   
-  vars_correlated_with_someone = c()  
+  vars_correlated_with_someone = c()
+  all_possibles_vars_correlated = c()
+  names_geral = names(list_vars_correlated)
   
   cont = 1
   for(actual_vars in list_vars_correlated){
     
     actual_names = names(actual_vars)
-    index_new_vars_correlatead = !(actual_names %in% vars_correlated_with_someone)
+    index_new_vars_correlatead = !(actual_names %in% all_possibles_vars_correlated)
     
-    vars_correlated_with_someone = append(vars_correlated_with_someone, actual_names[index_new_vars_correlatead])
+    all_possibles_vars_correlated = append(all_possibles_vars_correlated, actual_names[index_new_vars_correlatead])
     
+    vars_correlated_with_someone[cont] = names_geral[cont]
     cont = cont + 1
-    
-    if(length(vars_correlated_with_someone) == length(names(list_vars_correlated))){
+
+
+    if(length(all_possibles_vars_correlated) == length(names_geral)){
       break
     }
     
