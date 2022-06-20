@@ -14,7 +14,6 @@ df_treino = df_treino[col_num]
 df_treino
 
 
-
 x1 = unlist(df_treino['GrLivArea']) %>% as.vector
 x2 = unlist(df_treino['LotArea']) %>% as.vector
 x3 = unlist(df_treino['MasVnrArea']) %>% as.vector
