@@ -16,6 +16,8 @@ clear_vector_signif_vars = function(vector_signif_vars, name_vector){
   vec_row_names = row.names(vector_signif_vars)
   vec_filter_name_diff_name_vector = name_vector != vec_row_names
   
+  # vec_filter_name_diff_name_vector = rep(T,length(vec_row_names))
+
   vector_signif_vars = vector_signif_vars[vec_filter_name_diff_name_vector, 1]
   
   return(vector_signif_vars)
@@ -102,14 +104,20 @@ find_list_enough_vars_correlated = function(list_vars_correlated){
                                            vec_actual_names[vec_index_new_vars_correlatead])
     
 
-    if(mean(vec_index_new_vars_correlatead)!=1 || cont_from_all_vars == 1){
-      vec_vars_correlated_with_someone[cont_from_only_vars_correlated] = vec_names_vars_correlated[cont_from_all_vars]
-      cont_from_only_vars_correlated = cont_from_only_vars_correlated + 1
+    if(mean(!vec_index_new_vars_correlatead) != 1 || cont_from_all_vars == 1){
+      # vec_vars_correlated_with_someone[cont_from_only_vars_correlated] = vec_names_vars_correlated[cont_from_all_vars]
+      # cont_from_only_vars_correlated = cont_from_only_vars_correlated + 1
+      
+      vec_vars_correlated_with_someone = append(vec_vars_correlated_with_someone, 
+                                                vec_names_vars_correlated[cont_from_all_vars])
+      
+      vec_all_possibles_vars_correlated = append(vec_all_possibles_vars_correlated, 
+                                                 vec_names_vars_correlated[cont_from_all_vars])
     }
     
-    if(length(vec_all_possibles_vars_correlated) == length(vec_names_vars_correlated)){
-      break
-    }
+    # if(length(vec_all_possibles_vars_correlated) == length(vec_names_vars_correlated)){
+    #   break
+    # }
     
     cont_from_all_vars = cont_from_all_vars + 1
   }
