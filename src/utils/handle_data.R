@@ -125,4 +125,13 @@ find_list_enough_vars_correlated = function(list_vars_correlated){
   return(vec_vars_correlated_with_someone)
 }
 
+a = c("BsmtHalfBath","BsmtFullBath","FullBath","HalfBath","BedroomAbvGr","KitchenAbvGr","Fireplaces")
 
+numericas = numericas %>% 
+  select(!a)
+
+categoricas = cbind(categoricas, df_treino[a])
+categoricas[a] = sapply(categoricas[a], as.factor)
+
+
+as.character(df_treino[a])
