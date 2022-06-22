@@ -94,7 +94,6 @@ find_list_enough_vars_correlated = function(list_vars_correlated){
   vec_names_vars_correlated = names(list_vars_correlated)
   
   cont_from_all_vars = 1
-  cont_from_only_vars_correlated = 1
   for(vec_actual_vars in list_vars_correlated){
     
     vec_actual_names = names(vec_actual_vars)
@@ -105,9 +104,6 @@ find_list_enough_vars_correlated = function(list_vars_correlated){
     
 
     if(mean(!vec_index_new_vars_correlatead) != 1 || cont_from_all_vars == 1){
-      # vec_vars_correlated_with_someone[cont_from_only_vars_correlated] = vec_names_vars_correlated[cont_from_all_vars]
-      # cont_from_only_vars_correlated = cont_from_only_vars_correlated + 1
-      
       vec_vars_correlated_with_someone = append(vec_vars_correlated_with_someone, 
                                                 vec_names_vars_correlated[cont_from_all_vars])
       
@@ -115,23 +111,9 @@ find_list_enough_vars_correlated = function(list_vars_correlated){
                                                  vec_names_vars_correlated[cont_from_all_vars])
     }
     
-    # if(length(vec_all_possibles_vars_correlated) == length(vec_names_vars_correlated)){
-    #   break
-    # }
-    
     cont_from_all_vars = cont_from_all_vars + 1
   }
   
   return(vec_vars_correlated_with_someone)
 }
 
-a = c("BsmtHalfBath","BsmtFullBath","FullBath","HalfBath","BedroomAbvGr","KitchenAbvGr","Fireplaces")
-
-numericas = numericas %>% 
-  select(!a)
-
-categoricas = cbind(categoricas, df_treino[a])
-categoricas[a] = sapply(categoricas[a], as.factor)
-
-
-as.character(df_treino[a])
