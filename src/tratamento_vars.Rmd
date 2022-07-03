@@ -1,5 +1,5 @@
 ---
-title: "Modelagem"
+title: ""
 author: "Davi Guerra"
 date: ""
 output: pdf_document
@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = F, message = F)
 ```
 
 ```{r}
-setwd('D:/pibic')
+setwd('D:/pibic/src')
 pacman::p_load('tidyverse','DescTools')
 
 source('./utils/handle_data.R')
@@ -32,15 +32,12 @@ df_treino = df_treino %>%
 ```
 
 
-### Separando as variáveis numéricas e categóricas
 ```{r}
 col_num = sapply(df_treino, typeof) == "integer"
 col_char = sapply(df_treino, typeof) == "character"
 
 numericas = df_treino[col_num]
 categoricas = df_treino[col_char]
-
-length(numericas) + length(categoricas)
 ```
 
 ```{r}
@@ -54,68 +51,260 @@ categoricas[pseudo_vars_numericas] = sapply(categoricas[pseudo_vars_numericas], 
 ```
 
 ```{r}
-#library(corrplot)
-numericas_tratado = na.omit(numericas[-1])
-correlation_matrix = cor(numericas_tratado)
+valor_coef = 0.5
+```
 
-num_vars_correlated = part_variables_by_correlation(correlation_matrix, 0.5)$correlacionadas
-num_vars_not_correlated = part_variables_by_correlation(correlation_matrix, 0.5)$nao_correlacionadas %>% unlist
+
+# Filtragem de variáveis baseadas no coeficiente de correlação/contingência
+
+### Valor absoluto do coeficiente de correlação/contingência utilizado nos resultados abaixo:
+
+`r valor_coef`
+
+```{r}
+numericas_tratado = na.omit(numericas[-1])
+correlation_matrix = cor(numericas_tratado, use = 'complete.obs')
+
+num_vars_correlated = part_variables_by_correlation(correlation_matrix, valor_coef)$correlacionadas
+num_vars_not_correlated = part_variables_by_correlation(correlation_matrix, valor_coef)$nao_correlacionadas %>% unlist
 
 num_names_ordered = sapply(num_vars_correlated, function(x) length(x)) %>% sort(decreasing = T) %>% names
 
 enough_vars_correlated = find_list_enough_vars_correlated(num_vars_correlated[num_names_ordered])
-
-print('Número de variáveis numéricas')
-print(length(names(numericas)))
-
-print('Número de variáveis que NÃO possuem uma correlação forte com alguma variável')
-print(length(num_vars_correlated))
-
-print('Número de variáveis que possuem uma correlação forte com alguma variável')
-print(length(num_vars_not_correlated))
-
-print('Número de variáveis que conseguem estar correlacionadas com todas as outras variáveis')
-print(length(enough_vars_correlated))
 ```
+
+## Variáveis numéricas:
+
+Quantidade: `r length(names(numericas)) - 1`
+
+### Variáveis que NÃO possuem uma correlação forte com alguma variável: 
+`r num_vars_not_correlated`
+
+Quantidade: `r length(num_vars_not_correlated)`
+
+### Variáveis que possuem uma correlação forte com alguma variável: 
+`r names(num_vars_correlated)`
+
+Quantidade: `r length(names(num_vars_correlated))`
+
+### Variáveis que conseguem estar correlacionadas com todas as outras variáveis:
+`r enough_vars_correlated`
+
+Quantidade: `r length(enough_vars_correlated)`
+
 
 ```{r}
 matrix_coef_contigency = calcule_multiple_coef_contigency(categoricas) 
 
-cat_vars_associated = part_variables_by_correlation(matrix_coef_contigency, 0.5)$correlacionadas
-cat_vars_not_associated = part_variables_by_correlation(matrix_coef_contigency, 0.5)$nao_correlacionadas %>% unlist
+cat_vars_associated = part_variables_by_correlation(matrix_coef_contigency, valor_coef)$correlacionadas
+cat_vars_not_associated = part_variables_by_correlation(matrix_coef_contigency, valor_coef)$nao_correlacionadas %>% unlist
 
 cat_names_ordered = sapply(cat_vars_associated, function(x) length(x)) %>% sort(decreasing = T) %>% names
 
 enough_vars_associated = find_list_enough_vars_correlated(cat_vars_associated[cat_names_ordered])
-
-print('Número de variáveis categóricas')
-print(length(names(categoricas)))
-
-print('Número de variáveis que NÃO possuem uma associação forte com alguma variável')
-print(length(cat_vars_not_associated))
-
-print('Número de variáveis que possuem uma associação forte com alguma variável')
-print(length(names(cat_vars_associated)))
-
-print('Número de variáveis que conseguem estar associada com todas as outras variáveis')
-print(length(enough_vars_associated))
 ```
+
+\newpage
+
+## Variáveis categóricas:
+
+Quantidade: `r length(names(categoricas))`
+
+### Variáveis que NÃO possuem uma associação forte com alguma variável: 
+`r cat_vars_not_associated`
+
+Quantidade: `r length(cat_vars_not_associated)`
+
+### Variáveis que possuem uma associação forte com alguma variável: 
+`r names(cat_vars_associated)`
+
+Quantidade: `r length(names(cat_vars_associated))`
+
+### Variáveis que conseguem estar associadas com todas as outras variáveis:
+`r enough_vars_associated`
+
+Quantidade: `r length(enough_vars_associated)`
+
 
 ```{r}
 vec_enough_vars_associated_or_correlated = c(enough_vars_associated,enough_vars_correlated)
 vec_vars_not_associated_or_correlated = c(cat_vars_not_associated, num_vars_not_correlated)
 
-vec_util_vars = c(vec_enough_vars_associated_or_correlated, vec_enough_vars_associated_or_correlated)
+vec_util_vars = c(vec_vars_not_associated_or_correlated, vec_enough_vars_associated_or_correlated)
 ```
 
 
-# Matriz de correlação entre as variáveis quantitativas
+## Resultado da extração de variáveis:
 
-# fazer um modelo com cada variável numérica pela variável resposta
+### Variáveis que foram escolhidas:
+`r vec_util_vars`
 
-#calcular o coeficiente de contingência
+Quantidade de numéricas: `r length(enough_vars_correlated) + length(num_vars_not_correlated)`
 
-#comparação do teste da anova com cada variável categórica com a variável resposta
+Quantidade de categóricas: `r length(enough_vars_associated) + length(cat_vars_not_associated)`
+
+Quantidade total: `r length(vec_util_vars)`
+
+Quantidade anterior: 76
+
+
+<!-- # Matriz de correlação entre as variáveis quantitativas -->
+
+<!-- # fazer um modelo com cada variável numérica pela variável resposta -->
+
+<!-- #calcular o coeficiente de contingência -->
+
+<!-- #comparação do teste da anova com cada variável categórica com a variável resposta -->
+
+## Análise das variáveis numéricas pela variável resposta
+
+```{r}
+vec_num_vars_utils = c(enough_vars_correlated, num_vars_not_correlated)
+vec_cat_vars_utils = c(enough_vars_associated, cat_vars_not_associated)
+
+df_treino %>% 
+  select(enough_vars_correlated) %>% 
+  cbind(y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_point()+
+    facet_wrap(~name, scales = 'free')
+
+df_treino %>% 
+  select(num_vars_not_correlated) %>% 
+  cbind(y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_point()+
+    facet_wrap(~name, scales = 'free')
+
+data_num = cbind(df_treino[vec_num_vars_utils])
+```
+
+### Coeficiente de correlação
+```{r}
+vec_cor_vars = sapply(data_num, function(x) round(cor(x,y, use = 'complete.obs'),5))
+```
+
+### Resultado do p-valor
+```{r}
+result_cor_test = sapply(data_num, function(x) round(cor.test(x,y)$p.value,5))
+result_cor_test
+```
+
+
+
+### Variáveis filtradas pelo p-valor(0,05)
+```{r}
+signif_num_vars_by_test = data_num[result_cor_test < 0.05] %>% colnames()
+signif_num_vars_by_test
+```
+
+### Variáveis quem tem uma correlação absoluta maior que `r valor_coef` com a variável resposta
+```{r}
+signif_num_vars_by_cor = vec_cor_vars[abs(vec_cor_vars) > 0.5]
+signif_num_vars_by_cor
+```
+
+
+## Análise das variáveis categóricas pela variável resposta
+
+```{r}
+vec_cat_vars_utils = c(enough_vars_associated, cat_vars_not_associated)
+
+
+df_treino %>% 
+  select(enough_vars_associated[6:10]) %>% 
+  cbind(y) %>% 
+  mutate(KitchenAbvGr = as.character(KitchenAbvGr)) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+
+df_treino %>% 
+  select(cat_vars_not_associated[1:6]) %>% 
+  cbind(y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+
+df_treino %>% 
+  select(cat_vars_not_associated[7:11]) %>% 
+  cbind(y) %>% 
+  mutate(Fireplaces = as.character(Fireplaces)) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+
+
+data_cat = cbind(df_treino[vec_cat_vars_utils],y)
+```
+
+### Resultado Anova
+
+```{r}
+result_anova = summary(aov(y ~ ., data = data_cat))
+result_anova
+result_anova = result_anova[[1]]
+```
+### Variáveis filtradas pelo p-valor(0,05)
+
+```{r}
+signif_cat_vars = result_anova[result_anova$`Pr(>F)` < 0.05,] %>% 
+  row.names %>% str_trim() %>% 
+  str_remove('NA')
+
+signif_cat_vars
+```
+
+\newpage
+
+# Resultado da extração de variáveis
+### Dado a relação das variáveis explicativas pela variável resposta
+
+```{r}
+signif_vars = c(names(signif_num_vars_by_cor), signif_cat_vars)
+signif_vars = signif_vars[signif_vars != ""]
+
+signif_vars
+```
+
+Número de variáveis anteriormente: 76
+
+Número de variáveis agora: `r length(signif_vars)`
+
+```{r}
+
+# library(MASS)
+# 
+# df = cbind(df_treino[signif_vars],y)
+# df = na.omit(df)
+# model = lm(y~., data = df)
+# 
+# best_model = MASS::stepAIC(model, direction = 'backward') 
+# 
+# best_model$coefficients %>% names
+# 
+# df_treino$Neighborhood %>% unique()
+```
+
+
+
+
+tirar dúvidas:
+
+ - qual a melhor medida para se usar quando eu tenho uma variável contínua e outra categórica? 
+    já que o banco de dados é grande
+    
+ - como tratar variáveis que tem muitas categorias? como é o caso do neighborhood 
+
+
 
 
 

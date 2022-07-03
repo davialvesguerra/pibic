@@ -1,0 +1,134 @@
+---
+title: ""
+author: "Davi Guerra"
+date: ""
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F)
+```
+
+```{r}
+setwd('D:/pibic/src')
+pacman::p_load('tidyverse','DescTools')
+
+source('./utils/handle_data.R')
+
+options(scipen=999)
+
+#Retirando essas variáveis dos bancos de dados pois elas apresentavam muitos valores faltantes
+#na hora das análises e os valores que restavam não influenciava muito na variável resposta
+
+df_treino = read.csv('../data/train.csv') %>%
+  dplyr::select(!c(Alley,PoolQC,Fence,MiscFeature)) 
+
+df_test = read.csv('../data/test.csv') %>% 
+  dplyr::select(!c(Alley,PoolQC,Fence,MiscFeature))
+
+y = df_treino$SalePrice
+
+df_treino = df_treino %>% 
+  dplyr::select(!c(SalePrice))
+```
+
+
+```{r}
+col_num = sapply(df_treino, typeof) == "integer"
+col_char = sapply(df_treino, typeof) == "character"
+
+numericas = df_treino[col_num]
+categoricas = df_treino[col_char]
+```
+
+
+```{r}
+vec_num_vars_utils = c(enough_vars_correlated, num_vars_not_correlated)
+vec_cat_vars_utils = c(enough_vars_associated, cat_vars_not_associated)
+
+df_treino %>% 
+  select(enough_vars_correlated) %>% 
+  cbind(y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_point()+
+    facet_wrap(~name, scales = 'free')
+
+df_treino %>% 
+  select(num_vars_not_correlated) %>% 
+  cbind(y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_point()+
+    facet_wrap(~name, scales = 'free')
+
+data_num = cbind(df_treino[vec_num_vars_utils])
+
+sapply(data_num, function(x) round(cor(x,y, use = 'complete.obs'),5))
+
+result_cor_test = sapply(data_num, function(x) round(cor.test(x,y)$p.value,5))
+result_cor_test
+
+signif_num_vars = data_num[result_cor_test < 0.05] %>% colnames()
+signif_num_vars
+
+length(result_cor_test)
+length(signif_num_vars)
+```
+
+
+```{r}
+vec_cat_vars_utils = c(enough_vars_associated, cat_vars_not_associated)
+
+
+df_treino %>% 
+  select(enough_vars_associated[6:10]) %>% 
+  cbind(y) %>% 
+  mutate(KitchenAbvGr = as.character(KitchenAbvGr)) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+
+df_treino %>% 
+  select(cat_vars_not_associated[1:6]) %>% 
+  cbind(y) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+
+df_treino %>% 
+  select(cat_vars_not_associated[7:11]) %>% 
+  cbind(y) %>% 
+  mutate(Fireplaces = as.character(Fireplaces)) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
+
+
+
+data_cat = cbind(df_treino[vec_cat_vars_utils],y) 
+
+result_anova = summary(aov(y ~ ., data = data_cat))
+result_anova
+result_anova = result_anova[[1]]
+
+signif_cat_vars = result_anova[result_anova$`Pr(>F)` < 0.05,] %>% row.names %>% str_trim()
+signif_cat_vars
+
+length(signif_cat_vars)
+length(row.names(result_anova))
+```
+
+
+
+
+
+
+
+
+
