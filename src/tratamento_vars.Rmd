@@ -211,6 +211,14 @@ signif_num_vars_by_cor
 
 ```{r}
 vec_cat_vars_utils = c(enough_vars_associated, cat_vars_not_associated)
+df_treino %>% 
+  select(enough_vars_associated[1:4]) %>% 
+  cbind(y) %>% 
+  # mutate(KitchenAbvGr = as.character(KitchenAbvGr)) %>% 
+  pivot_longer(-y) %>% 
+  ggplot(aes(x = value, y = y))+
+    geom_boxplot()+
+    facet_wrap(~name, scales = 'free')
 
 
 df_treino %>% 
@@ -269,6 +277,7 @@ signif_cat_vars
 ### Dado a relação das variáveis explicativas pela variável resposta
 
 ```{r}
+signif_cat_vars = signif_cat_vars[signif_cat_vars != ""]
 signif_vars = c(names(signif_num_vars_by_cor), signif_cat_vars)
 signif_vars = signif_vars[signif_vars != ""]
 
@@ -283,28 +292,82 @@ Número de variáveis agora: `r length(signif_vars)`
 
 # library(MASS)
 # 
-# df = cbind(df_treino[signif_vars],y)
-# df = na.omit(df)
-# model = lm(y~., data = df)
-# 
-# best_model = MASS::stepAIC(model, direction = 'backward') 
-# 
-# best_model$coefficients %>% names
-# 
-# df_treino$Neighborhood %>% unique()
+df = cbind(df_treino[signif_vars],y)
+df = na.omit(df)
+
+model = lm(y~., data = df)
+summary(model)
+summary.model = summary.lm(lm(y~., data = df))
+
+
+
+best_model = MASS::stepAIC(model, direction = 'backward')
+ 
+best_model$coefficients %>% names
+
+df_treino$Neighborhood %>% unique()
+```
+
+```{r}
+coefs_model = as.data.frame(summary.model$coefficients)
+coefs_model['Covars Names'] = row.names(coefs_model)
+coefs_model
+
+#filtrar as variáveis
+
+
+#criar uma função que pega o dataframe de coeficientes do summary
+#do modelo e retorne o mesmo dataframe, só que somente com as
+#variáveis significativas do modelo e o resto das variáveis
+#agrupadas de acordo com um intervalo próximo
+
+#parâmetros:
+# - dataframe com os coeficientes
+# - vetor com as variáveis categóricas
+
+
+filterSignificantVars = function(data_coef_model, vec_cat_vars, signif_nivel = 0.05){
+  
+  lapply(vec_cat_vars, function(cat_var){
+      data_coef_model %>% 
+        filter(str_detect(`Covars Names`,cat_var)) %>% 
+        filter(`Pr(>|t|)` < signif_nivel) %>% 
+        mutate(name_of_category = cat_var) %>% 
+        mutate(categories_of_category = str_remove(`Covars Names`,cat_var))
+  }) %>% 
+  data.table::rbindlist()
+  
+}
+
+
+
+filterSignificantVars(coefs_model, signif_cat_vars)
+
+
+
+
+
+
+names_covars = summary.model$coefficients %>% row.names()
+names_covars
+
+
 ```
 
 
+tentar agrupar as variáveis de acordo com os betas, para as variáveis não significativas
 
 
-tirar dúvidas:
+comparar o modelo pelo aic das variáveis agrupadas e não agrupadas
 
- - qual a melhor medida para se usar quando eu tenho uma variável contínua e outra categórica? 
-    já que o banco de dados é grande
-    
- - como tratar variáveis que tem muitas categorias? como é o caso do neighborhood 
-
-
+- capítulo 3, livro rafael
+ - 
+ 
+objetivo 
+comparar os melhores modelos
+  - lasso, ridge
+  - fazer uma tabela com o erro quadrático médio, erro padrão
+  - tabela 3.5
 
 
 
