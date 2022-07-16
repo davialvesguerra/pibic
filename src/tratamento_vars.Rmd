@@ -13,7 +13,8 @@ knitr::opts_chunk$set(echo = F, message = F)
 setwd('D:/pibic/src')
 pacman::p_load('tidyverse','DescTools')
 
-source('./utils/handle_data.R')
+source('./utils/handle_data.R', encoding = 'UTF-8')
+source('./utils/handle_model.R', encoding = 'UTF-8')
 options(scipen=999)
 
 #Retirando essas variáveis dos bancos de dados pois elas apresentavam muitos valores faltantes
@@ -41,7 +42,7 @@ categoricas = df_treino[col_char]
 ```
 
 ```{r}
-pseudo_vars_numericas = c("BsmtHalfBath","BsmtFullBath","FullBath","HalfBath","BedroomAbvGr","KitchenAbvGr","Fireplaces")
+pseudo_vars_numericas = c("BsmtHalfBath","BsmtFullBath","FullBath","HalfBath","BedroomAbvGr","KitchenAbvGr")
  
 numericas = numericas %>% 
    select(!pseudo_vars_numericas)
@@ -241,9 +242,8 @@ df_treino %>%
 
 
 df_treino %>% 
-  select(cat_vars_not_associated[7:11]) %>% 
+  select(cat_vars_not_associated[7:10]) %>% 
   cbind(y) %>% 
-  mutate(Fireplaces = as.character(Fireplaces)) %>% 
   pivot_longer(-y) %>% 
   ggplot(aes(x = value, y = y))+
     geom_boxplot()+
@@ -281,7 +281,7 @@ signif_cat_vars = signif_cat_vars[signif_cat_vars != ""]
 signif_vars = c(names(signif_num_vars_by_cor), signif_cat_vars)
 signif_vars = signif_vars[signif_vars != ""]
 
-signif_vars
+signif_vars 
 ```
 
 Número de variáveis anteriormente: 76
@@ -292,20 +292,15 @@ Número de variáveis agora: `r length(signif_vars)`
 
 # library(MASS)
 # 
-df = cbind(df_treino[signif_vars],y)
-df = na.omit(df)
+df_model = cbind(df_treino[signif_vars],y)
+df_model = na.omit(df_model)
+df_model
 
-model = lm(y~., data = df)
+model = lm(y~., data = df_model)
 summary(model)
-summary.model = summary.lm(lm(y~., data = df))
-
-
+summary.model = summary.lm(lm(y~., data = df_model))
 
 best_model = MASS::stepAIC(model, direction = 'backward')
- 
-best_model$coefficients %>% names
-
-df_treino$Neighborhood %>% unique()
 ```
 
 ```{r}
@@ -313,45 +308,97 @@ coefs_model = as.data.frame(summary.model$coefficients)
 coefs_model['Covars Names'] = row.names(coefs_model)
 coefs_model
 
-#filtrar as variáveis
 
-
-#criar uma função que pega o dataframe de coeficientes do summary
-#do modelo e retorne o mesmo dataframe, só que somente com as
-#variáveis significativas do modelo e o resto das variáveis
-#agrupadas de acordo com um intervalo próximo
-
-#parâmetros:
-# - dataframe com os coeficientes
-# - vetor com as variáveis categóricas
-
-
-filterSignificantVars = function(data_coef_model, vec_cat_vars, signif_nivel = 0.05){
+get_names_insignificant_cat_vars = function(data_coef_model, signif_level, vec_cat_vars){
+    
+  data_coef_model = data_coef_model %>% 
+    filter(`Pr(>|t|)` >= signif_level)
   
-  lapply(vec_cat_vars, function(cat_var){
-      data_coef_model %>% 
-        filter(str_detect(`Covars Names`,cat_var)) %>% 
-        filter(`Pr(>|t|)` < signif_nivel) %>% 
-        mutate(name_of_category = cat_var) %>% 
-        mutate(categories_of_category = str_remove(`Covars Names`,cat_var))
-  }) %>% 
-  data.table::rbindlist()
+  sapply(vec_cat_vars, function(cat_var){
+    data_coef_model %>% 
+      mutate(category = cat_var) %>% 
+      filter(str_detect(`Covars Names`,cat_var)) %>% 
+      select(category) %>% 
+      unique
+  }) %>% as.vector
   
 }
 
+insignif_cat_vars_by_model = get_names_insignificant_cat_vars(coefs_model,0.05, signif_cat_vars)
+insignif_cat_vars_by_model = Filter(length, insignif_cat_vars_by_model)
+insignif_cat_vars_by_model
+```
 
 
-filterSignificantVars(coefs_model, signif_cat_vars)
+```{r}
+group_vars_by_coef_value = function(data_coef_model, vec_cat_vars, name_col_reference, coef_value){
+    
+  lapply(vec_cat_vars, function(cat_var){
+      data_coef_model %>% 
+        filter(`Pr(>|t|)` >= 0.05) %>%
+        filter(str_detect(`Covars Names`,cat_var)) %>% 
+        rename(var_reference = name_col_reference) %>% 
+        mutate(name_of_category = cat_var)     %>%
+        mutate(categories_of_category = str_remove(`Covars Names`,cat_var)) %>%
+        select(name_of_category, categories_of_category, var_reference) %>%
+        arrange(var_reference)  %>%
+        mutate(var_reference_group = group_by_value(var_reference, coef_value )) %>%
+        group_by(var_reference_group) %>%
+        summarise(categories_of_category = paste(categories_of_category,collapse = '_')) %>%
+        mutate(category = cat_var)
+  })%>% 
+  data.table::rbindlist()
+}
 
 
+cat_vars_grouped = group_vars_by_coef_value(coefs_model, insignif_cat_vars_by_model, name_col_reference = 't value', coef_value = 3)
 
 
+data_group_vars = function(df_train, df_vars_grouped, vec_cat_vars){
+  modific_cols = lapply(vec_cat_vars, function(cat_var){
+    
+    name_category = cat_var
+    
+    vec_categories = df_vars_grouped %>% 
+      filter(category == cat_var) %>% 
+      select(categories_of_category) %>% 
+      unlist
+    
+    df_train %>% 
+      rename(current_cat_var = cat_var) %>% 
+      mutate(current_cat_var = sapply(current_cat_var, function(obs) {
+        vec_cond_cat = str_detect(vec_categories, obs)
+        
+        vars_filtered = vec_categories[vec_cond_cat]
+        if(length(vars_filtered) > 0){
+          
+          vars_filtered
+          
+        }else{
+          obs
+        }
+        
+      })) %>% 
+      select(current_cat_var)
+  }) %>% 
+    do.call(cbind, .)
+  
+  colnames(modific_cols) = vec_cat_vars
+  return(modific_cols)
+}
+
+a = data_group_vars(df_model, cat_vars_grouped, insignif_cat_vars_by_model)
+new_df_model = cbind(df_model[c(names(signif_num_vars_by_cor),'y')], a)
 
 
-names_covars = summary.model$coefficients %>% row.names()
-names_covars
+```
 
+```{r}
+model = lm(y~., data = new_df_model)
+summary.model = summary.lm(lm(y~., data = df_model))
 
+best_model = MASS::stepAIC(model, direction = 'backward')
+best_model$coefficients %>% length
 ```
 
 
